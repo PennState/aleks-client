@@ -58,19 +58,29 @@ const (
 type PlacementReport []PlacementRecord
 
 //
-func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (PlacementReport, error) {
+func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (PlacementReport, []error) {
+	pr := PlacementReport{}
+	errs := []error{}
+
+	errs = append(errs, validateRequestDate(from)...)
+	errs = append(errs, validateRequestDate(to)...)
+	if len(errs) > 0 {
+		return pr, errs
+	}
+
 	type result struct {
 		PlacementReport PlacementReport
 		Errors          []error
 	}
 	r := make(chan result, len(classcodes))
+
 	// Scatter
 	for _, code := range classcodes {
 		xc, err := xmlrpc.NewClient(c.url, c.trans)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
-		// TODO: validate from and to are formatted correctly
 		// TODO: validate classcodes are formatted correctly
 		params := map[string]string{
 			"username":             c.username,
@@ -86,14 +96,11 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 	}
 
 	// Gather
-	pr := PlacementReport{}
-	errs := []error{}
 	for i := 0; i < cap(r); i++ {
 		res := <-r
 		errs = append(errs, res.Errors...)
 		pr = append(pr, res.PlacementReport...)
 	}
-	log.Info("Errors: ", errs)
 	return pr, nil
 }
 
@@ -103,13 +110,12 @@ type placementReportEnvConfig struct {
 	ClassCodes []string `split_words:"true" required:"true"`
 }
 
-func (c *Client) GetPlacementReportFromEnv() (PlacementReport, error) {
+func (c *Client) GetPlacementReportFromEnv() (PlacementReport, []error) {
 	cfg := placementReportEnvConfig{}
 	err := envconfig.Process(AleksEnvconfigPrefix, &cfg)
 	if err != nil {
-		return nil, err
+		return nil, []error{err}
 	}
-	log.Info("Placement report config: ", cfg)
 	return c.GetPlacementReport(cfg.From, cfg.To, cfg.ClassCodes...)
 }
 
@@ -123,11 +129,11 @@ func getPlacementReportForClassCode(xc *xmlrpc.Client, params map[string]string)
 		if err != nil {
 			return nil, append(errs, err)
 		}
+
 		data = strings.Trim(data, " 	\n")
 		if data == placementReportEndMarker {
 			break
 		}
-
 		log.Debug("Page data: ", data)
 
 		r, e := getPlacementRecordsForPage(data)
@@ -173,6 +179,15 @@ func validateHeaders(record []string) []error {
 			msg := fmt.Sprintf("Unexpected header column title (%d) - expected: %s, actual: %s", idx, hdr, exp)
 			errs = append(errs, errors.New(msg))
 		}
+	}
+	return errs
+}
+
+func validateRequestDate(value string) []error {
+	errs := []error{}
+	_, err := time.Parse(placementReportRequestDateFormat, value)
+	if err != nil {
+		errs = append(errs, err)
 	}
 	return errs
 }
