@@ -15,28 +15,33 @@ import (
 )
 
 const (
-	placementReportMethod            = "getPlacementReport"
-	placementReportRequestDateFormat = "2006-01-02"
-	placementReportHeaderColumn00    = "Name"
-	placementReportHeaderColumn01    = "Student Id"
-	placementReportHeaderColumn02    = "Email"
-	placementReportHeaderColumn03    = "Last login"
-	placementReportHeaderColumn04    = "Placement Assessment Number"
-	placementReportHeaderColumn05    = "Total Number of Placements Taken"
-	placementReportHeaderColumn06    = "Start Date"
-	placementReportHeaderColumn07    = "Start Time"
-	placementReportHeaderColumn08    = "End Date"
-	placementReportHeaderColumn09    = "End Time"
-	placementReportHeaderColumn10    = "Proctored Assessment"
-	placementReportHeaderColumn11    = "Time in Placement (in hours)"
-	placementReportHeaderColumn12    = "Placement Results %"
-	placementRecordFieldCount        = 13
-	placementRecordDateFormat        = "01/02/2006"
-	placementRecordTimestampFormat   = "01/02/2006 03:04 PM"
+	placementReportMethod                 = "getPlacementReport"
+	placementReportRequestDateFormat      = "2006-01-02"
+	placementReportRequestClassCodeFormat = "[A-Z]{5}-[A-Z]{5}"
+	placementReportHeaderColumn00         = "Name"
+	placementReportHeaderColumn01         = "Student Id"
+	placementReportHeaderColumn02         = "Email"
+	placementReportHeaderColumn03         = "Last login"
+	placementReportHeaderColumn04         = "Placement Assessment Number"
+	placementReportHeaderColumn05         = "Total Number of Placements Taken"
+	placementReportHeaderColumn06         = "Start Date"
+	placementReportHeaderColumn07         = "Start Time"
+	placementReportHeaderColumn08         = "End Date"
+	placementReportHeaderColumn09         = "End Time"
+	placementReportHeaderColumn10         = "Proctored Assessment"
+	placementReportHeaderColumn11         = "Time in Placement (in hours)"
+	placementReportHeaderColumn12         = "Placement Results %"
+	placementReportEndMarker              = "No records found"
+	placementRecordFieldCount             = 13
+	placementRecordDateFormat             = "01/02/2006"
+	placementRecordTimestampFormat        = "01/02/2006 03:04 PM"
 )
 
+// PlacementReport contains the PlacementRecords returned (if any) by the
+// GetPlacementReport method.
 type PlacementReport []PlacementRecord
 
+//
 func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (PlacementReport, error) {
 	type result struct {
 		PlacementReport PlacementReport
@@ -50,6 +55,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 			return nil, err
 		}
 		// TODO: validate from and to are formatted correctly
+		// TODO: validate classcodes are formatted correctly
 		params := map[string]string{
 			"username":             c.username,
 			"password":             c.password,
@@ -58,7 +64,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 			"class_code":           code,
 		}
 		go func() {
-			pr, err := c.getPlacementReportForClassCode(xc, params)
+			pr, err := getPlacementReportForClassCode(xc, params)
 			r <- result{pr, err}
 		}()
 	}
@@ -68,13 +74,8 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 	errs := []error{}
 	for i := 0; i < cap(r); i++ {
 		res := <-r
-		if res.Errors != nil && len(res.Errors) > 0 {
-			errs = append(errs, res.Errors...)
-		}
-		if res.PlacementReport != nil && len(res.PlacementReport) > 0 {
-			pr = append(pr, res.PlacementReport...)
-		}
-
+		errs = append(errs, res.Errors...)
+		pr = append(pr, res.PlacementReport...)
 	}
 	log.Info("Errors: ", errs)
 	return pr, nil
@@ -88,7 +89,7 @@ type placementReportEnvConfig struct {
 
 func (c *Client) GetPlacementReportFromEnv() (PlacementReport, error) {
 	cfg := placementReportEnvConfig{}
-	err := envconfig.Process(aleksEnvconfigPrefix, &cfg)
+	err := envconfig.Process(AleksEnvconfigPrefix, &cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -96,24 +97,38 @@ func (c *Client) GetPlacementReportFromEnv() (PlacementReport, error) {
 	return c.GetPlacementReport(cfg.From, cfg.To, cfg.ClassCodes...)
 }
 
-func (c *Client) getPlacementReportForClassCode(xc *xmlrpc.Client, params map[string]string) (PlacementReport, []error) {
+func getPlacementReportForClassCode(xc *xmlrpc.Client, params map[string]string) (PlacementReport, []error) {
 	rep := PlacementReport{}
 	errs := []error{}
-	// TODO: iterate over page numbers
-	params["page_num"] = "1"
-	data := ""
-	err := xc.Call(placementReportMethod, params, &data)
-	if err != nil {
-		return nil, append(errs, err)
-	}
-	data = strings.Trim(data, " 	\n")
+	for page := 1; true; page++ {
+		params["page_num"] = strconv.FormatInt(int64(page), 10)
+		data := ""
+		err := xc.Call(placementReportMethod, params, &data)
+		if err != nil {
+			return nil, append(errs, err)
+		}
+		data = strings.Trim(data, " 	\n")
+		if data == placementReportEndMarker {
+			break
+		}
 
+		log.Debug("Page data: ", data)
+
+		r, e := getPlacementRecordsForPage(data)
+		rep = append(rep, r...)
+		errs = append(errs, e...)
+	}
+	return rep, errs
+}
+
+func getPlacementRecordsForPage(data string) (PlacementReport, []error) {
 	rdr := csv.NewReader(strings.NewReader(data))
 	rdr.FieldsPerRecord = placementRecordFieldCount
 	rdr.ReuseRecord = true
 
-	first := true
-	for {
+	rep := PlacementReport{}
+	errs := []error{}
+	for first := true; true; first = false {
 		rec, err := rdr.Read()
 		if err == io.EOF {
 			break
@@ -123,34 +138,18 @@ func (c *Client) getPlacementReportForClassCode(xc *xmlrpc.Client, params map[st
 			continue
 		}
 		if first {
-			errs = append(errs, checkHeaders(rec)...)
-			first = false
+			errs = append(errs, validateHeaders(rec)...)
 			continue
 		}
 		r, e := newPlacementRecord(rec)
+		log.Debug("Placement record: ", r)
 		errs = append(errs, e...)
 		rep = append(rep, r)
 	}
-
-	// for idx, line := range strings.Split(data, "\n") {
-	// 	if idx == 0 {
-	// 		err = checkHeader(line)
-	// 		if err != nil {
-	// 			errs = append(errs, err)
-	// 		}
-	// 		continue
-	// 	}
-	// 	rec, err := newPlacementRecord(line)
-	// 	if err != nil {
-	// 		errs = append(errs, err)
-	// 		continue
-	// 	}
-	// 	rep = append(rep, rec)
-	// }
 	return rep, errs
 }
 
-func checkHeaders(record []string) []error {
+func validateHeaders(record []string) []error {
 	errs := []error{}
 	for idx, hdr := range record {
 		exp := expectedHeaders()[idx]
@@ -182,7 +181,7 @@ func expectedHeaders() []string {
 
 type PlacementRecord struct {
 	Name                         string
-	StudentId                    string
+	StudentID                    string
 	Email                        string
 	LastLogin                    time.Time
 	PlacementAssessmentNumber    int
@@ -195,49 +194,59 @@ type PlacementRecord struct {
 }
 
 func newPlacementRecord(rec []string) (PlacementRecord, []error) {
-	log.Info("Record: ", rec)
+	log.Debug(" CSV record: ", rec)
 	errs := []error{}
-	// TODO: replace this with functions that accumulate the errors
-	lastLogin, err := time.Parse(placementRecordDateFormat, rec[3])
-	if err != nil {
-		errs = append(errs, err)
-	}
-	placementAssessmentNumber, err := strconv.ParseInt(rec[4], 10, 32)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	totalNumberOfPlacementsTaken, err := strconv.ParseInt(rec[5], 10, 32)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	startTime, err := time.Parse(placementRecordTimestampFormat, rec[6]+" "+rec[7])
-	if err != nil {
-		errs = append(errs, err)
-	}
-	endTime, err := time.Parse(placementRecordTimestampFormat, rec[8]+" "+rec[9])
-	if err != nil {
-		errs = append(errs, err)
-	}
-	hoursInPlacement, err := strconv.ParseFloat(rec[11], 64)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	// FIXME: strip the % before parsing
-	placementResults, err := strconv.ParseFloat(rec[12], 64)
-	if err != nil {
-		errs = append(errs, err)
-	}
+	lastLogin, errs := parseDate(rec[3], errs)
+	placementAssessmentNumber, errs := parseInt(rec[4], errs)
+	totalNumberOfPlacementsTaken, errs := parseInt(rec[5], errs)
+	startTime, errs := parseTime(rec[6]+" "+rec[7], errs)
+	endTime, errs := parseTime(rec[8]+" "+rec[9], errs)
+	hoursInPlacement, errs := parseFloat(rec[11], errs)
+	placementResults, errs := parseFloat(rec[12], errs)
 	return PlacementRecord{
 		Name:                         rec[0],
-		StudentId:                    rec[1],
+		StudentID:                    rec[1],
 		Email:                        rec[2],
 		LastLogin:                    lastLogin,
-		PlacementAssessmentNumber:    int(placementAssessmentNumber),
-		TotalNumberOfPlacementsTaken: int(totalNumberOfPlacementsTaken),
+		PlacementAssessmentNumber:    placementAssessmentNumber,
+		TotalNumberOfPlacementsTaken: totalNumberOfPlacementsTaken,
 		StartTime:                    startTime,
 		EndTime:                      endTime,
 		ProctoredAssessment:          rec[10],
 		HoursInPlacement:             hoursInPlacement,
 		PlacementResults:             placementResults,
 	}, errs
+}
+
+func parseDate(value string, errs []error) (time.Time, []error) {
+	d, err := time.Parse(placementRecordDateFormat, value)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	return d, errs
+}
+
+func parseInt(value string, errs []error) (int, []error) {
+	i, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	return int(i), errs
+}
+
+func parseFloat(value string, errs []error) (float64, []error) {
+	value = strings.ReplaceAll(value, "%", "")
+	f, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	return f, errs
+}
+
+func parseTime(value string, errs []error) (time.Time, []error) {
+	t, err := time.Parse(placementRecordTimestampFormat, value)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	return t, errs
 }
