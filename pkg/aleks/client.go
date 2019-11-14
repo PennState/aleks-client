@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The Pennsylvania State University
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package aleks
 
 import (
@@ -12,6 +28,7 @@ const (
 	// AleksEnvconfigPrefix indicates that all environment variables used
 	// by this library will start with ALEKS_.
 	AleksEnvconfigPrefix = "aleks"
+
 	// AleksDefaultURL is used to access the Aleks service if an alternate
 	// URL is not provided via either the parameterized NewClient
 	// constructor or the no-parameters NewClientFromEnv constructor.
@@ -27,8 +44,8 @@ type Client struct {
 	trans    http.RoundTripper
 }
 
-// NewClient returns a new Aleks client given an optional URL, a username
-// and a password.
+// NewClient returns a new Aleks client given an optional URL and a
+// required username and password.
 func NewClient(url, username, password string) (*Client, error) {
 	return newClient(url, username, password, &RoundTripper{})
 }
@@ -42,9 +59,9 @@ type clientEnvConfig struct {
 // NewClientFromEnv returns a new Aleks client from environment variables
 // as follows:
 //
-// - ALEKS_URL      (Optional - see default in constants)
-// - ALEKS_USERNAME (Required)
-// - ALEKS_PASSWORD (Required)
+//   - ALEKS_URL      (Optional - see the default in constants)
+//   - ALEKS_USERNAME (Required)
+//   - ALEKS_PASSWORD (Required)
 //
 // It is important to note that the individual Aleks XMLRPC calls will
 // generally required additional parameters.
