@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // aleksTransport is equivalent to the http.DefaultTransport with
@@ -30,7 +28,7 @@ func aleksTransport() *http.Transport {
 }
 
 // RoundTripper intercepts HTTP calls and alters the request as described
-// below.
+// by the #RoundTrip method.
 type RoundTripper struct{}
 
 // RoundTrip implements https://golang.org/pkg/net/http/#RoundTripper.
@@ -54,10 +52,9 @@ func (art *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		return resp, err
 	}
 
-	// Strip CDATA tags (and trim whitespace)
+	// Strip CDATA tags
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("Body error: ", err)
 		return resp, err
 	}
 	bodyStr := string(body)
