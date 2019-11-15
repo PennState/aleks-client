@@ -101,7 +101,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 		errs = append(errs, res.Errors...)
 		pr = append(pr, res.PlacementReport...)
 	}
-	return pr, nil
+	return pr, errs
 }
 
 type placementReportEnvConfig struct {
