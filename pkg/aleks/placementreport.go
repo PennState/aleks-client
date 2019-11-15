@@ -34,7 +34,7 @@ import (
 const (
 	placementReportMethod                 = "getPlacementReport"
 	placementReportRequestDateFormat      = "2006-01-02"
-	placementReportRequestClassCodeFormat = "[A-Z]{5}-[A-Z]{5}"
+	placementReportRequestClasscodeFormat = "[A-Z]{5}-[A-Z]{5}"
 	placementReportHeaderColumn00         = "Name"
 	placementReportHeaderColumn01         = "Student Id"
 	placementReportHeaderColumn02         = "Email"
@@ -81,7 +81,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 
 	errs = append(errs, validateRequestDate(from)...)
 	errs = append(errs, validateRequestDate(to)...)
-	errs = append(errs, validateClassCodes(classcodes)...)
+	errs = append(errs, validateClasscodes(classcodes)...)
 	if len(errs) > 0 {
 		return pr, errs
 	}
@@ -107,7 +107,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 			"class_code":           code,
 		}
 		go func() {
-			pr, err := getPlacementReportForClassCode(xc, params)
+			pr, err := getPlacementReportForClasscode(xc, params)
 			r <- result{pr, err}
 		}()
 	}
@@ -124,7 +124,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 type placementReportEnvConfig struct {
 	From       string   `envconfig:"FROM_COMPLETION_DATE" required:"true"`
 	To         string   `envconfig:"TO_COMPLETION_DATE" required:"true"`
-	ClassCodes []string `split_words:"true" required:"true"`
+	Classcodes []string `required:"true"`
 }
 
 // GetPlacementReportFromEnv returns PlacementRecords and errors as
@@ -133,7 +133,7 @@ type placementReportEnvConfig struct {
 //
 //   - ALEKS_FROM_COMPLETION_DATE (Required - YYYY-MM-DD)
 //   - ALEKS_TO_COMPLETION_DATE   (Required - YYYY-MM-DD)
-//   - ALEKS_CLASS_CODES          (Required - One or more class-codes
+//   - ALEKS_CLASSCODES           (Required - One or more class-codes
 //                                 with the format AAAAA-AAAAA in a comma
 //                                 separated string)
 func (c *Client) GetPlacementReportFromEnv() (PlacementReport, []error) {
@@ -142,10 +142,10 @@ func (c *Client) GetPlacementReportFromEnv() (PlacementReport, []error) {
 	if err != nil {
 		return nil, []error{err}
 	}
-	return c.GetPlacementReport(cfg.From, cfg.To, cfg.ClassCodes...)
+	return c.GetPlacementReport(cfg.From, cfg.To, cfg.Classcodes...)
 }
 
-func getPlacementReportForClassCode(xc *xmlrpc.Client, params map[string]string) (PlacementReport, []error) {
+func getPlacementReportForClasscode(xc *xmlrpc.Client, params map[string]string) (PlacementReport, []error) {
 	rep := PlacementReport{}
 	errs := []error{}
 	for page := 1; true; page++ {
@@ -197,9 +197,9 @@ func getPlacementRecordsForPage(data string) (PlacementReport, []error) {
 	return rep, errs
 }
 
-func validateClassCodes(classcodes []string) []error {
+func validateClasscodes(classcodes []string) []error {
 	errs := []error{}
-	re, err := regexp.Compile(placementReportRequestClassCodeFormat)
+	re, err := regexp.Compile(placementReportRequestClasscodeFormat)
 	if err != nil {
 		errs = append(errs, err)
 	}

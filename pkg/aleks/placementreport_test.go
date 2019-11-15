@@ -25,7 +25,7 @@ func TestPlacementReportRequestClasscodeValidation(t *testing.T) {
 	for idx := range tests {
 		test := tests[idx]
 		t.Run(test.Name, func(t *testing.T) {
-			errs := validateClassCodes([]string{test.Value})
+			errs := validateClasscodes([]string{test.Value})
 			if test.Errant {
 				require.Len(t, errs, 1)
 				assert.Equal(t, classcodeValidationErrorMessage+test.Value, errs[0].Error())
@@ -56,7 +56,7 @@ func TestPlacementReportRequestDateValidation(t *testing.T) {
 	}
 }
 
-func TestPlacementRecordConstructor(t *testing.T) {
+func TestPlacementReport(t *testing.T) {
 	//nolint:lll
 	data := `
 "Name","Student Id","Email","Last login","Placement Assessment Number","Total Number of Placements Taken","Start Date","Start Time","End Date","End Time","Proctored Assessment","Time in Placement (in hours)","Placement Results %"
