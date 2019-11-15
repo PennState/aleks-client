@@ -57,9 +57,12 @@ func TestPlacementReportRequestDateValidation(t *testing.T) {
 }
 
 func TestPlacementRecordConstructor(t *testing.T) {
-	data := `"Name","Student Id","Email","Last login","Placement Assessment Number","Total Number of Placements Taken","Start Date","Start Time","End Date","End Time","Proctored Assessment","Time in Placement (in hours)","Placement Results %"
+	//nolint:lll
+	data := `
+"Name","Student Id","Email","Last login","Placement Assessment Number","Total Number of Placements Taken","Start Date","Start Time","End Date","End Time","Proctored Assessment","Time in Placement (in hours)","Placement Results %"
 "Doe, John","912345678","JQD5678@PSU.EDU","03/06/2016","1","1","03/06/2016","01:42 PM","03/06/2016","03:23 PM","No/Complete","1.7","62%"
-"Doe, Jane","923456789","JXD6789@PSU.EDU","03/03/2016","1","2","03/03/2016","07:19 PM","03/03/2016","09:30 PM","No/Complete","2.2","81%"`
+"Doe, Jane","923456789","JXD6789@PSU.EDU","03/03/2016","1","2","03/03/2016","07:19 PM","03/03/2016","09:30 PM","No/Complete","2.2","81%"
+`
 	exp := PlacementReport{
 		PlacementRecord{
 			Name:                         "Doe, John",
