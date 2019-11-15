@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -53,6 +54,10 @@ const (
 	placementRecordTimestampFormat        = "01/02/2006 03:04 PM"
 )
 
+const (
+	classcodeValidationErrorMessage = "Class code does not match required format: "
+)
+
 // PlacementReport contains the PlacementRecords returned (if any) by the
 // GetPlacementReport and GetPlacementReportFromEnv methods.
 type PlacementReport []PlacementRecord
@@ -76,6 +81,7 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 
 	errs = append(errs, validateRequestDate(from)...)
 	errs = append(errs, validateRequestDate(to)...)
+	errs = append(errs, validateClassCodes(classcodes)...)
 	if len(errs) > 0 {
 		return pr, errs
 	}
@@ -93,7 +99,6 @@ func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (Plac
 			errs = append(errs, err)
 			continue
 		}
-		// TODO: validate classcodes are formatted correctly
 		params := map[string]string{
 			"username":             c.username,
 			"password":             c.password,
@@ -190,6 +195,20 @@ func getPlacementRecordsForPage(data string) (PlacementReport, []error) {
 		rep = append(rep, r)
 	}
 	return rep, errs
+}
+
+func validateClassCodes(classcodes []string) []error {
+	errs := []error{}
+	re, err := regexp.Compile(placementReportRequestClassCodeFormat)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	for _, classcode := range classcodes {
+		if !re.Match([]byte(classcode)) {
+			errs = append(errs, errors.New(classcodeValidationErrorMessage+classcode))
+		}
+	}
+	return errs
 }
 
 func validateHeaders(record []string) []error {

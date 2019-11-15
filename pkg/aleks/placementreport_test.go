@@ -5,7 +5,34 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestPlacementReportRequestClasscodeValidation(t *testing.T) {
+	tests := []struct {
+		Name   string
+		Value  string
+		Errant bool
+	}{
+		{"Valid classcode", "ABCDE-FGHIJ", false},
+		{"Short prefix", "", true},
+		{"Long prefix", "", true},
+		{"Short suffix", "", true},
+		{"Long suffix", "", true},
+		{"No dash", "", true},
+		{"Invalid character", "", true},
+	}
+	for idx := range tests {
+		test := tests[idx]
+		t.Run(test.Name, func(t *testing.T) {
+			errs := validateClassCodes([]string{test.Value})
+			if test.Errant {
+				require.Len(t, errs, 1)
+				assert.Equal(t, classcodeValidationErrorMessage+test.Value, errs[0].Error())
+			}
+		})
+	}
+}
 
 func TestPlacementReportRequestDateValidation(t *testing.T) {
 	invalidErr := &time.ParseError{
