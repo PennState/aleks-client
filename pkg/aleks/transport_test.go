@@ -24,7 +24,7 @@ func (rt *InterceptingRoundTripper) RoundTrip(req *http.Request) (*http.Response
 }
 
 func TestTransport(t *testing.T) {
-	trans := aleksTransport()
+	trans := transport()
 	assert.True(t, trans.DisableCompression)
 	trans.DisableCompression = false
 	assert.ObjectsAreEqual(http.DefaultTransport, trans)

@@ -26,7 +26,7 @@ import (
 
 // aleksTransport is equivalent to the http.DefaultTransport with
 // compression disabled.  See https://golang.org/pkg/net/http/#RoundTripper.
-func aleksTransport() *http.Transport {
+func transport() *http.Transport {
 	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{

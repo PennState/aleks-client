@@ -48,7 +48,7 @@ type Client struct {
 // required username and password.
 func NewClient(url, username, password string) (*Client, error) {
 	rt := RoundTripper{
-		Trans: aleksTransport(),
+		Trans: transport(),
 	}
 	return newClient(url, username, password, &rt)
 }
@@ -75,7 +75,7 @@ func NewClientFromEnv() (*Client, error) {
 		return nil, err
 	}
 	rt := RoundTripper{
-		Trans: aleksTransport(),
+		Trans: transport(),
 	}
 	return newClient(cfg.URL, cfg.Username, cfg.Password, &rt)
 }
