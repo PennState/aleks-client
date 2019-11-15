@@ -53,9 +53,9 @@ type RoundTripper struct{}
 // to care if they're missing but we're adding them here for completeness.
 // More importantly, this intercepter replaces the default transport
 // with one that has compression disabled.  On the response side, the
-// xmlrpc library doesn't deal with string values wrapped in CDATA
+// XML-RPC library doesn't deal with string values wrapped in CDATA
 // tags so this RoundTripper also strips those tags from the result.
-func (art *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (*RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Set the headers required by the specification
 	req.Header["Accept"] = []string{"*/*"}
 	req.Header["User-Agent"] = []string{"aleks-client"}

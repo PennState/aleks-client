@@ -54,10 +54,22 @@ const (
 )
 
 // PlacementReport contains the PlacementRecords returned (if any) by the
-// GetPlacementReport method.
+// GetPlacementReport and GetPlacementReportFromEnv methods.
 type PlacementReport []PlacementRecord
 
+// GetPlacementReport calls the Aleks XML-RPC method of the same name for
+// one or more class-codes and returns the results as a list of
+// PlacementRecords.  A collection of errors that occurred during this
+// process is also collected and returned to the caller.  Note that it is
+// possible for both PlacementRecords and errors to be returned from the
+// same call as valid PlacementRecords are not discarded due to errors
+// in other records.
 //
+// This method uses an individual thread to retrieve the data for each
+// class-code and collects the results in a single PlacementReport to
+// reduce the time it takes to retrieve large data sets.  Requesting
+// large numbers of class-codes will therefore result in a large number
+// of threads.
 func (c *Client) GetPlacementReport(from, to string, classcodes ...string) (PlacementReport, []error) {
 	pr := PlacementReport{}
 	errs := []error{}
@@ -110,6 +122,15 @@ type placementReportEnvConfig struct {
 	ClassCodes []string `split_words:"true" required:"true"`
 }
 
+// GetPlacementReportFromEnv returns PlacementRecords and errors as
+// described by the documentation for GetPlacementReport but retrieves
+// its configuration from environment variables as follows:
+//
+//   - ALEKS_FROM_COMPLETION_DATE (Required - YYYY-MM-DD)
+//   - ALEKS_TO_COMPLETION_DATE   (Required - YYYY-MM-DD)
+//   - ALEKS_CLASS_CODES          (Required - One or more class-codes
+//                                 with the format AAAAA-AAAAA in a comma
+//                                 separated string)
 func (c *Client) GetPlacementReportFromEnv() (PlacementReport, []error) {
 	cfg := placementReportEnvConfig{}
 	err := envconfig.Process(AleksEnvconfigPrefix, &cfg)
@@ -210,6 +231,13 @@ func expectedHeaders() []string {
 	}
 }
 
+// PlacementRecord provides the results of an individual placement exam.
+// The Aleks format returns 13 strings formatted as a CSV record.  The
+// 11 fields below are in the same order and (almost) have the same names
+// as the columns in this CSV report - the "Start Date"/"Start Time" and
+// "End Date"/"End Time" columns are combined into a single field below.
+// In addition, all string columns are validated and converted to their
+// appropriate types.
 type PlacementRecord struct {
 	Name                         string
 	StudentID                    string
