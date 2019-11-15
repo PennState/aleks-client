@@ -55,3 +55,41 @@ func TestPlacementReportRequestDateValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestPlacementRecordConstructor(t *testing.T) {
+	data := `"Name","Student Id","Email","Last login","Placement Assessment Number","Total Number of Placements Taken","Start Date","Start Time","End Date","End Time","Proctored Assessment","Time in Placement (in hours)","Placement Results %"
+"Doe, John","912345678","JQD5678@PSU.EDU","03/06/2016","1","1","03/06/2016","01:42 PM","03/06/2016","03:23 PM","No/Complete","1.7","62%"
+"Doe, Jane","923456789","JXD6789@PSU.EDU","03/03/2016","1","2","03/03/2016","07:19 PM","03/03/2016","09:30 PM","No/Complete","2.2","81%"`
+	exp := PlacementReport{
+		PlacementRecord{
+			Name:                         "Doe, John",
+			StudentID:                    "912345678",
+			Email:                        "JQD5678@PSU.EDU",
+			LastLogin:                    time.Date(2016, time.March, 6, 0, 0, 0, 0, time.UTC),
+			PlacementAssessmentNumber:    1,
+			TotalNumberOfPlacementsTaken: 1,
+			StartTime:                    time.Date(2016, time.March, 6, 13, 42, 0, 0, time.UTC),
+			EndTime:                      time.Date(2016, time.March, 6, 15, 23, 0, 0, time.UTC),
+			ProctoredAssessment:          "No/Complete",
+			HoursInPlacement:             1.7,
+			PlacementResults:             62,
+		},
+		PlacementRecord{
+			Name:                         "Doe, Jane",
+			StudentID:                    "923456789",
+			Email:                        "JXD6789@PSU.EDU",
+			LastLogin:                    time.Date(2016, time.March, 3, 0, 0, 0, 0, time.UTC),
+			PlacementAssessmentNumber:    1,
+			TotalNumberOfPlacementsTaken: 2,
+			StartTime:                    time.Date(2016, time.March, 3, 19, 19, 0, 0, time.UTC),
+			EndTime:                      time.Date(2016, time.March, 3, 21, 30, 0, 0, time.UTC),
+			ProctoredAssessment:          "No/Complete",
+			HoursInPlacement:             2.2,
+			PlacementResults:             81,
+		},
+	}
+	pr, errs := getPlacementRecordsForPage(data)
+	require.Len(t, errs, 0)
+	require.Len(t, pr, 2)
+	assert.Equal(t, exp, pr)
+}
