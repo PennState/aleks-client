@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<methodCall xmlns:ex="http://ws.apache.org/xmlrpc/namespaces/extensions">
+  <methodName>getPlacementReport</methodName>
+  <params>
+    <param>
+      <value>
+        <struct>
+          <member>
+            <name>from_completion_date</name>
+            <value>2016-03-01</value>
+          </member>
+          <member>
+            <name>password</name>
+            <value>yvbJyC%Y{=+rPJ</value>
+          </member>
+          <member>
+            <name>page_num</name>
+            <value>1</value>
+          </member>
+          <member>
+            <name>to_completion_date</name>
+            <value>2016-03-07</value>
+          </member>
+          <member>
+            <name>username</name>
+            <value>aleksadmin</value>
+          </member>
+          <member>
+            <name>class_code</name>
+            <value>ABCDE-FGHIJ</value>
+          </member>
+        </struct>
+      </value>
+    </param>
+  </params>
+</methodCall>

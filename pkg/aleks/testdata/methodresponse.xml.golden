@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+        <string>
+            "Name","Student Id","Email","Last login","Placement Assessment Number","Total Number of Placements Taken","Start Date","Start Time","End Date","End Time","Proctored Assessment","Time in Placement (in hours)","Placement Results %"
+            "Test, User","999999999","TST@PSU.EDU","06/05/2017","1","1","06/05/2017","09:49 PM","06/06/2017","01:46 AM","No/Complete","4.0","83%"
+        </string>
+      </value>
+    </param>
+  </params>
+</methodResponse>
