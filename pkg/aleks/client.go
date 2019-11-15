@@ -47,7 +47,10 @@ type Client struct {
 // NewClient returns a new Aleks client given an optional URL and a
 // required username and password.
 func NewClient(url, username, password string) (*Client, error) {
-	return newClient(url, username, password, &RoundTripper{})
+	rt := RoundTripper{
+		Trans: aleksTransport(),
+	}
+	return newClient(url, username, password, &rt)
 }
 
 type clientEnvConfig struct {
@@ -71,7 +74,10 @@ func NewClientFromEnv() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newClient(cfg.URL, cfg.Username, cfg.Password, &RoundTripper{})
+	rt := RoundTripper{
+		Trans: aleksTransport(),
+	}
+	return newClient(cfg.URL, cfg.Username, cfg.Password, &rt)
 }
 
 func newClient(url, username, password string, trans http.RoundTripper) (*Client, error) {

@@ -45,7 +45,9 @@ func aleksTransport() *http.Transport {
 
 // RoundTripper intercepts HTTP calls and alters the request as described
 // by the #RoundTrip method.
-type RoundTripper struct{}
+type RoundTripper struct {
+	Trans http.RoundTripper
+}
 
 // RoundTrip implements https://golang.org/pkg/net/http/#RoundTripper.
 // The XML-RPC specification requires the User-Agent and Host headers
@@ -55,7 +57,7 @@ type RoundTripper struct{}
 // with one that has compression disabled.  On the response side, the
 // XML-RPC library doesn't deal with string values wrapped in CDATA
 // tags so this RoundTripper also strips those tags from the result.
-func (*RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (rt *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Set the headers required by the specification
 	req.Header["Accept"] = []string{"*/*"}
 	req.Header["User-Agent"] = []string{"aleks-client"}
@@ -63,7 +65,7 @@ func (*RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header["Host"] = []string{host}
 
 	// Make the call using the customized transport
-	resp, err := aleksTransport().RoundTrip(req)
+	resp, err := rt.Trans.RoundTrip(req)
 	if err != nil {
 		return resp, err
 	}
