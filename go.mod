@@ -1,4 +1,4 @@
-module github.com/selesy/aleks-client
+module github.com/pennstate/aleks-client
 
 go 1.13
 

@@ -5,7 +5,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/selesy/aleks-client/pkg/aleks"
+	"github.com/pennstate/aleks-client/pkg/aleks"
 )
 
 func main() {
